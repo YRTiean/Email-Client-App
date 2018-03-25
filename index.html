@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>My App</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, minimal-ui">
+    <link rel="stylesheet" href="app.min.css">
+    <style>
+      /* TODO */
+    </style>
+  </head>
+
+  <body>
+    
+     <div class="app-page" data-page="home">
+      
+           <div class="app-topbar">
+            <div class="app-title">Send an Email</div>
+          </div>
+
+          <div class="app-content">
+
+              <p class="app-section">Click Below to send an Email</p>
+
+                <div class = "app-section" id = "contact-list">
+                    
+                    
+                    
+                </div>
+                
+                <div class = "app-section">
+                    
+                    <div class= "app-button" id = "new-user" >Send to new user</div>
+                    
+                </div>
+
+          </div>
+    </div>
+    
+    <div class="app-page" data-page="sendemail">
+			<div class="app-topbar">
+				<div class="app-title">Send Email</div>
+				<div class="right app-button" data-back>Done</div>
+			</div>
+
+			<div class="app-content">
+
+        <div class="app-section" id="msg">
+        
+
+          
+        </div>
+            
+        <div class="app-section" >
+				    <p >From: </p>
+					<input class="app-input" id="sender-email" >
+				</div>
+				
+				
+				<div class="app-section" >                
+                    <p >To: </p>
+					<input class="app-input" id="recipient-email">
+				</div>
+				                
+				<form >
+					<div class="app-section">
+					    <p >Subject:</p><input class="app-input" name="subject" id="subject">
+				    </div>
+				    <div class="app-section">
+					    <p >Message:</p>
+					    <textarea class="app-input" name="message" id="message"></textarea>
+				    </div>
+
+					<div class=" app-section app-button green app-submit" id ="send-button">Send</div>
+				</form>
+
+			</div>
+		</div>
+
+
+
+    <div class="app-page" data-page="page2">
+      <div class="app-topbar">
+        <div class="app-button left" data-back data-autotitle></div>
+        <div class="app-title">Page 2</div>
+      </div>
+      <div class="app-content">
+        Page 2 is lonely
+      </div>
+    </div>
+
+    <script src="zepto.js"></script>
+    <script src="app.min.js"></script>
+    <script>
+
+      App.controller('home', function (page) {
+        // put stuff here
+
+          if(typeof localStorage != "undefined"){
+            
+            if (localStorage.getItem("recipient-email") !== null){
+
+              var rec_list = JSON.parse(localStorage.getItem("recipient-email"));
+
+              $.each(rec_list, function(index, value){
+                
+                  $(page).find("#contact-list").append('<div class= "app-button redirect">'+value+'</div>');
+
+              });
+              $(page).find("#contact-list").show();
+
+              $(page).find(".redirect").clickable()
+              .on("click", function(){
+                
+                localStorage.setItem("recipient", $(this).html());
+                
+                App.load("sendemail");              
+
+              });
+
+              $(page).find("#new-user").clickable().on('click', function(){
+
+                if(localStorage.getItem("recipient") !== null){
+                  localStorage.removeItem("recipient");
+                  
+                }
+                App.load("sendemail");
+              });
+
+            } else {
+              $(page).find("#contact-list").hide();
+            }
+
+          }
+      });
+
+    App.controller('sendemail', function (page) {
+
+            $(page).find("#msg").hide();
+            
+            if (typeof localStorage !== 'undefined') {
+
+                if (localStorage.getItem("sender-email") !== null) {
+
+
+                    $(page).find("#sender-email").val(localStorage.getItem("sender-email"));
+
+                }else{
+
+                }
+                if (localStorage.getItem("recipient") !== null) {
+                  
+                  $(page).find("#recipient-email").val(localStorage.getItem("recipient"));
+
+                }
+
+                
+            }
+    
+        $(page).find('#send-button').clickable().on('click', function(){
+           
+          $.ajax({
+              type: 'GET',
+              url: 'http://yrtwebhosting-com.stackstaging.com/mobile/index.php?callback=response',
+              // data to be added to query string:
+              data: { 
+                to: $("#sender-email").val(),
+                from : $("#recipient-email").val(),
+                subject: $("#subject").val(),
+                message: $("#message").val() 
+              },
+              // type of data we are expecting in return:
+              dataType: 'json',
+              timeout: 300,
+              context: $('body'),
+              success: function(data){
+                $(page).find("#msg").show();
+                if( data.success == true){
+                  $(page).find("#msg").html("<b>Message Sent</b>");
+                }else{
+                  $(page).find("#msg").html("<b>Message not sent</b>");
+                }
+
+              },
+              error: function(xhr, type){
+                $(page).find("#msg").html("<b>Message not sent</b>");
+              }
+            });
+
+
+            if(typeof localStorage !== 'undefined'){
+               
+                localStorage.setItem("sender-email", $("#sender-email").val());
+
+                var recipient_email_list = new Array();
+                if (localStorage.getItem("recipient-email") !== null){
+
+                    recipient_email_list = JSON.parse(localStorage.getItem("recipient-email"));
+                }
+                if ($.inArray($("#recipient-email").val(), recipient_email_list) == -1){
+                    recipient_email_list.push($("#recipient-email").val());
+                    recipient_email_list.sort();
+                    localStorage.setItem("recipient-email", JSON.stringify(recipient_email_list));
+                    console.log(recipient_email_list);
+                }
+
+               }else{
+                   alert("Local Storage not found");
+               }
+        });
+    });
+
+      
+      try {
+          //Loading the whole page - Without it nothing will work
+        App.restore();
+      } catch (err) {
+        App.load('home');
+      }
+    </script>
+  </body>
+</html>
